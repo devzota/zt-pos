@@ -1,5 +1,5 @@
-/** ZTTeam Home POS Page with compact List Layout */
-import React, { useState } from 'react';
+/** ZTTeam Home POS Page with compact List Layout & safe database seeding */
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ztteam_db, ztteam_seedInitialData } from '../db/ztteam_database';
@@ -14,16 +14,18 @@ export function ZTTeamHomePage() {
   const { setZtteam_activeProduct } = ztteam_useCart();
   const [ztteam_selectedCategory, setZtteam_selectedCategory] = useState('all');
 
+  /** Safely seed initial data on component mount */
+  useEffect(() => {
+    ztteam_seedInitialData();
+  }, []);
+
   /** Query Categories dynamically from Dexie IndexedDB */
   const ztteam_categories = useLiveQuery(async () => {
-    await ztteam_seedInitialData();
-    const cats = await ztteam_db.categories.toArray();
-    return cats;
+    return await ztteam_db.categories.toArray();
   }, []);
 
   /** Query Products from Dexie IndexedDB */
   const ztteam_products = useLiveQuery(async () => {
-    await ztteam_seedInitialData();
     if (ztteam_selectedCategory === 'all') {
       return await ztteam_db.products.toArray();
     }
