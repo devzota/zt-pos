@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Danh sách sản phẩm</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#f5ece9",
+                        "secondary-fixed": "#efe0cd",
+                        "on-secondary-container": "#6d6354",
+                        "tertiary-fixed-dim": "#b6d081",
+                        "on-surface": "#1f1b19",
+                        "on-primary-fixed-variant": "#613e31",
+                        "on-primary-container": "#bf9282",
+                        "on-tertiary-container": "#8ca55a",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#4b2c20",
+                        "surface-dim": "#e1d8d6",
+                        "primary-fixed": "#ffdbce",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#141f00",
+                        "outline-variant": "#d5c3bd",
+                        "surface-tint": "#7b5647",
+                        "on-tertiary-fixed-variant": "#394d0c",
+                        "secondary-fixed-dim": "#d2c4b2",
+                        "surface-container-highest": "#eae1de",
+                        "background": "#fff8f6",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#2e140a",
+                        "primary": "#32170d",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#fbf2ef",
+                        "tertiary-fixed": "#d2ed9a",
+                        "inverse-surface": "#342f2e",
+                        "primary-fixed-dim": "#ecbcaa",
+                        "surface-variant": "#eae1de",
+                        "tertiary": "#162200",
+                        "secondary-container": "#efe0cd",
+                        "on-secondary-fixed-variant": "#4f4538",
+                        "secondary": "#675d4e",
+                        "inverse-on-surface": "#f8efec",
+                        "on-error-container": "#93000a",
+                        "outline": "#83746f",
+                        "surface-container-high": "#efe6e4",
+                        "inverse-primary": "#ecbcaa",
+                        "on-background": "#1f1b19",
+                        "surface-bright": "#fff8f6",
+                        "on-surface-variant": "#504440",
+                        "surface": "#fff8f6",
+                        "tertiary-container": "#273900",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#221a0f",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding": "20px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "unit": "4px",
+                        "gutter": "12px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Montserrat"],
+                        "headline-sm": ["Montserrat"],
+                        "display-lg-mobile": ["Montserrat"],
+                        "display-lg": ["Montserrat"],
+                        "body-md": ["Montserrat"],
+                        "body-lg": ["Montserrat"],
+                        "display-md": ["Montserrat"],
+                        "label-md": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .shadow-soft {
+            box-shadow: 0 4px 20px rgba(75, 44, 32, 0.08);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col pb-safe md:hidden">
+    <!-- TopAppBar -->
+    <header
+        class="bg-surface dark:bg-surface-dim docked full-width top-0 flat no shadows flex justify-between items-center w-full px-container-padding py-sm sticky z-40">
+        <div class="flex items-center gap-sm">
+            <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden">
+                <img class="w-full h-full object-cover"
+                    data-alt="A warm, artisanal profile avatar of a cafe barista, smiling warmly in a cozy coffee shop setting. Soft lighting highlights their face against a blurred background of espresso machines and pastries. The overall mood is welcoming and modern, consistent with a premium local cafe experience. Color palette features deep espresso browns and warm creams."
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjTnbvFc4GRu3LTom1xcQt_ATArRAnH3qewRb0OoGlZ8WVec4YhOD-bQHDbxKXYBA659p7ayYIkZ5ihOHMar5K6PL_CEHRa9UpHDZ5llRTSIowHu1_cT2408JsVnIy-BP7drb9TyBO-ToQ1BtiTCIZeWzNiUu-Ch4qjeGE6FckSCSxsXm28AFo7kwW9_oTeHNc3tDdDQgaou_k3C74RJpwRDbTRYy9K1kWWrhI-WhbHO2NDVicyHuV" />
+            </div>
+            <h1 class="font-display-md text-display-md text-primary dark:text-primary-fixed-dim">Cozy Sips</h1>
+        </div>
+        <button
+            class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center hover:opacity-80 active:scale-95 transition-transform text-primary dark:text-primary-fixed-dim relative">
+            <span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+            <span
+                class="absolute top-0 right-0 bg-error text-on-error rounded-full w-5 h-5 flex items-center justify-center font-label-md text-[10px]">12</span>
+        </button>
+    </header>
+    <!-- Main Content Canvas -->
+    <main class="flex-grow px-container-padding py-md space-y-lg mb-20">
+        <!-- Today's Summary (Glassmorphism-lite) -->
+        <section class="bg-secondary-fixed/50 backdrop-blur-sm rounded-xl p-md shadow-soft">
+            <div class="flex justify-between items-center mb-sm">
+                <h2 class="font-title-lg text-title-lg text-primary">Doanh thu hôm nay</h2>
+                <span class="font-label-md text-label-md text-on-surface-variant bg-surface px-2 py-1 rounded-full">24
+                    thg 10</span>
+            </div>
+            <div class="flex items-end gap-sm">
+                <span class="font-display-lg-mobile text-display-lg-mobile text-primary">420.000đ</span>
+                <span class="font-body-md text-body-md text-on-tertiary-container pb-1 flex items-center">
+                    <span class="material-symbols-outlined text-[16px]">arrow_upward</span> 12%
+                </span>
+            </div>
+        </section>
+        <!-- Product List -->
+        <section>
+            <h3 class="font-title-lg text-title-lg text-primary mb-md">Sản phẩm nổi bật</h3>
+            <div class="grid grid-cols-2 gap-gutter">
+                <!-- Product Card 1 -->
+                <div class="bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden flex flex-col">
+                    <div class="aspect-square bg-surface-container-high relative">
+                        <img class="w-full h-full object-cover"
+                            data-alt="A beautifully crafted hot latte in a minimalist ceramic cup, sitting on a wooden table. Rich espresso art adorns the top. The lighting is soft and natural, evoking a cozy, warm cafe atmosphere. The color palette focuses on creamy whites, rich browns, and soft earthy tones."
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAY7RTxvkLUQxL8e0MMpV_0LMbn7EDbOSckTS7LIG6VUNZY8IHEOM_D0GMoOipSSHF8IPgziMGZvK6n2PolXaQX5siVD_lMHfUO2DQY7TARKshN7ZRfItf77oWC3qjqHteX0YxDWs9iE_XWSjYbjiwdhN4Zhf7KndtFg2KK5yvCoJB9HlIBAXZf8-XLWDxxURP-3QY7iqJHXHX4noSbnDHqb4Puv-JjMY2NIlFAZr5r_fokxRS8pCcz" />
+                        <div
+                            class="absolute top-sm left-sm bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full font-label-md text-[10px]">
+                            Đang HOT</div>
+                    </div>
+                    <div class="p-sm flex flex-col flex-grow justify-between">
+                        <div>
+                            <h4 class="font-title-lg text-title-lg text-primary truncate">Cà phê Sữa</h4>
+                            <p class="font-body-md text-body-md text-tertiary-container font-semibold mt-xs">35.000đ</p>
+                        </div>
+                        <button
+                            class="mt-md w-full h-[40px] bg-[#E07A5F] text-white rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-xs">
+                            <span class="material-symbols-outlined text-[18px]">add</span> Bán ngay
+                        </button>
+                    </div>
+                </div>
+                <!-- Product Card 2 -->
+                <div class="bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden flex flex-col">
+                    <div class="aspect-square bg-surface-container-high relative">
+                        <img class="w-full h-full object-cover"
+                            data-alt="A refreshing iced matcha latte in a clear glass, showing layers of rich green matcha and creamy white milk. Condensation drips down the glass, resting on a clean, modern cafe counter. The lighting is bright and inviting, emphasizing the vibrant green and pristine white colors."
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXQAKI2qY5eheRLI_2MwQlyHhlkeJ46ou6ofN91hJXTvSDuUVO4RCoUlPumD9UuUk40j6-Pyk73R4fvqddfVBf6dLDIH2fOEKxKPmgow5jgR_eK16h8jklgXvDTJD8Kb9cCFDu5F25LnLScjvFy_x96GAcbLFOERDqGnVOb7e8V20nRokRs3vuTTvu4Iqr51Ye1BLHN5ymbaD0Mn1POYY9icrEddBkVGj_-JXfdaeO8NugOgWvCn6l" />
+                    </div>
+                    <div class="p-sm flex flex-col flex-grow justify-between">
+                        <div>
+                            <h4 class="font-title-lg text-title-lg text-primary truncate">Matcha Đá</h4>
+                            <p class="font-body-md text-body-md text-tertiary-container font-semibold mt-xs">45.000đ</p>
+                        </div>
+                        <button
+                            class="mt-md w-full h-[40px] bg-[#E07A5F] text-white rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-xs">
+                            <span class="material-symbols-outlined text-[18px]">add</span> Bán ngay
+                        </button>
+                    </div>
+                </div>
+                <!-- Product Card 3 -->
+                <div class="bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden flex flex-col">
+                    <div class="aspect-square bg-surface-container-high relative">
+                        <img class="w-full h-full object-cover"
+                            data-alt="A perfectly flaky, golden-brown croissant served on a minimalist white ceramic plate. The texture of the pastry is highlighted by warm, directional lighting that creates inviting shadows. The setting is a cozy, tactile cafe environment with subtle earthy undertones in the background."
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvmDOQVt9LEoQlNSqXpKYWdj4jx9X5PhwUZxjER8On85888jveDMjOX6e5kRjvWvMWuwwiDBM5zQ_oGTRP4NYSAbpzPw_OknznrEs27ZsMuitN8cZNsTdTDb7IzKnQfkBcSwPYJ2r_RseIws2vSWINhbVCQB-OLmBUxo9v6itkX4IM2xy232VLFev7s3wteMglEetieTqtbJWBNw3AExqU4SlbKBUSXCXIXWl6piRKE05FJBsPaJtG" />
+                    </div>
+                    <div class="p-sm flex flex-col flex-grow justify-between">
+                        <div>
+                            <h4 class="font-title-lg text-title-lg text-primary truncate">Bánh Croissant</h4>
+                            <p class="font-body-md text-body-md text-tertiary-container font-semibold mt-xs">25.000đ</p>
+                        </div>
+                        <button
+                            class="mt-md w-full h-[40px] bg-[#E07A5F] text-white rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-xs">
+                            <span class="material-symbols-outlined text-[18px]">add</span> Bán ngay
+                        </button>
+                    </div>
+                </div>
+                <!-- Product Card 4 -->
+                <div class="bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden flex flex-col">
+                    <div class="aspect-square bg-surface-container-high relative">
+                        <img class="w-full h-full object-cover"
+                            data-alt="A comforting mug of rich, dark hot chocolate topped with a generous dollop of whipped cream and a dusting of cocoa powder. The mug sits on a tactile wooden coaster. Warm, intimate lighting creates a deeply cozy and inviting atmosphere typical of an artisanal cafe."
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfwUbAoHCoiXUHWiS8WM4D1ROlCU_17XqAwMrO0M6v8BN9diehESb0PUEKZkEz3b8W9wxkX5wvyApQjwlj9X9e1YJ0WEyiYAsOqguGvy-c2rgfv_IRByO0jd60L9DIxALlQZcMthuJ9rvltawfwI4tkYKYbczSPEYLXKpowhfYJSiE_sMLnV62zo6fNsKdb6GRsTlZe1qonmqOnz6hZM-i4aXuBXsjH7EUxyta75WpEpRsKWI3bvlf" />
+                    </div>
+                    <div class="p-sm flex flex-col flex-grow justify-between">
+                        <div>
+                            <h4 class="font-title-lg text-title-lg text-primary truncate">Cacao Nóng</h4>
+                            <p class="font-body-md text-body-md text-tertiary-container font-semibold mt-xs">40.000đ</p>
+                        </div>
+                        <button
+                            class="mt-md w-full h-[40px] bg-[#E07A5F] text-white rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-xs">
+                            <span class="material-symbols-outlined text-[18px]">add</span> Bán ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Categories List (Horizontal Scroll) -->
+        <section class="mt-lg">
+            <div class="flex gap-sm overflow-x-auto pb-sm snap-x scrollbar-hide">
+                <button
+                    class="bg-primary-container text-on-primary-container px-md py-2 rounded-full font-label-md text-label-md whitespace-nowrap snap-start shadow-sm">Tất
+                    cả</button>
+                <button
+                    class="bg-[#F5E6D3] text-[#4B2C20] px-md py-2 rounded-full font-label-md text-label-md whitespace-nowrap snap-start border border-outline-variant hover:bg-surface-container-high transition-colors">Cà
+                    phê</button>
+                <button
+                    class="bg-[#F5E6D3] text-[#4B2C20] px-md py-2 rounded-full font-label-md text-label-md whitespace-nowrap snap-start border border-outline-variant hover:bg-surface-container-high transition-colors">Trà
+                    &amp; Trái Cây</button>
+                <button
+                    class="bg-[#F5E6D3] text-[#4B2C20] px-md py-2 rounded-full font-label-md text-label-md whitespace-nowrap snap-start border border-outline-variant hover:bg-surface-container-high transition-colors">Bánh
+                    Ngọt</button>
+            </div>
+        </section>
+    </main>
+    <!-- BottomNavBar -->
+    <nav
+        class="bg-surface-container-low/80 dark:bg-surface-container-high/80 fixed bottom-0 w-full z-50 backdrop-blur-md rounded-t-xl shadow-md flex justify-around items-center px-lg py-sm pb-safe">
+        <button
+            class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-fixed-dim text-on-primary-container dark:text-on-primary-fixed rounded-full px-4 py-1 hover:text-primary dark:hover:text-primary-fixed Active: scale-95 transition-all duration-200">
+            <span class="material-symbols-outlined" data-icon="home">home</span>
+            <span class="font-label-md text-label-md mt-1">Home</span>
+        </button>
+        <button
+            class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1 hover:text-primary dark:hover:text-primary-fixed Active: scale-95 transition-all duration-200">
+            <span class="material-symbols-outlined" data-icon="redeem">redeem</span>
+            <span class="font-label-md text-label-md mt-1">Rewards</span>
+        </button>
+        <button
+            class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1 hover:text-primary dark:hover:text-primary-fixed Active: scale-95 transition-all duration-200">
+            <span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+            <span class="font-label-md text-label-md mt-1">Orders</span>
+        </button>
+        <button
+            class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1 hover:text-primary dark:hover:text-primary-fixed Active: scale-95 transition-all duration-200">
+            <span class="material-symbols-outlined" data-icon="person">person</span>
+            <span class="font-label-md text-label-md mt-1">Profile</span>
+        </button>
+    </nav>
+    <script>
+        // Simple script to handle button press effect and hide scrollbar visually while keeping functionality
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('touchstart', () => btn.classList.add('scale-95'));
+            btn.addEventListener('touchend', () => btn.classList.remove('scale-95'));
+        });
+
+        // Add minimal style to hide scrollbar for webkit browsers
+        const style = document.createElement('style');
+        style.textContent = `
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>

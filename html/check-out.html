@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Xác nhận bán - Cà phê Sữa</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#7b5647",
+                        "on-tertiary-fixed": "#141f00",
+                        "secondary-container": "#efe0cd",
+                        "inverse-on-surface": "#f8efec",
+                        "secondary-fixed": "#efe0cd",
+                        "on-primary-fixed-variant": "#613e31",
+                        "surface-container-low": "#fbf2ef",
+                        "surface-container-highest": "#eae1de",
+                        "on-surface": "#1f1b19",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#ecbcaa",
+                        "surface-variant": "#eae1de",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#504440",
+                        "surface-dim": "#e1d8d6",
+                        "surface": "#fff8f6",
+                        "on-secondary-container": "#6d6354",
+                        "primary-fixed": "#ffdbce",
+                        "on-error-container": "#93000a",
+                        "secondary": "#675d4e",
+                        "outline-variant": "#d5c3bd",
+                        "on-primary-fixed": "#2e140a",
+                        "outline": "#83746f",
+                        "tertiary-container": "#273900",
+                        "tertiary-fixed-dim": "#b6d081",
+                        "tertiary": "#162200",
+                        "on-tertiary-fixed-variant": "#394d0c",
+                        "on-background": "#1f1b19",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#fff8f6",
+                        "secondary-fixed-dim": "#d2c4b2",
+                        "inverse-primary": "#ecbcaa",
+                        "primary-container": "#4b2c20",
+                        "primary": "#32170d",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "background": "#fff8f6",
+                        "tertiary-fixed": "#d2ed9a",
+                        "on-tertiary-container": "#8ca55a",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#f5ece9",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#342f2e",
+                        "on-secondary-fixed-variant": "#4f4538",
+                        "surface-container-high": "#efe6e4",
+                        "on-primary-container": "#bf9282",
+                        "on-secondary-fixed": "#221a0f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "gutter": "12px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "container-padding": "20px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Montserrat"],
+                        "body-lg": ["Montserrat"],
+                        "display-md": ["Montserrat"],
+                        "label-md": ["Montserrat"],
+                        "display-lg": ["Montserrat"],
+                        "display-lg-mobile": ["Montserrat"],
+                        "title-lg": ["Montserrat"],
+                        "body-md": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* Custom soft shadow mapping to Brand Espresso color */
+        .shadow-soft {
+            box-shadow: 0 8px 24px rgba(75, 44, 32, 0.08);
+        }
+
+        .shadow-inner-soft {
+            box-shadow: inset 0 2px 4px rgba(75, 44, 32, 0.05);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-surface text-on-surface font-body-lg min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container">
+    <!-- Top App Bar (Custom for Transactional Flow - Nav Shell Suppressed) -->
+    <header
+        class="sticky top-0 z-40 bg-surface/90 backdrop-blur-md flex items-center justify-between px-container-padding py-sm">
+        <button aria-label="Go back"
+            class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:scale-95">
+            <span class="material-symbols-outlined text-on-surface text-[24px]">arrow_back</span>
+        </button>
+        <h1 class="font-title-lg text-title-lg text-on-surface text-center absolute left-1/2 -translate-x-1/2">Bán ngay
+        </h1>
+        <div class="w-10 h-10"></div> <!-- Spacer for perfect centering -->
+    </header>
+    <!-- Main Content Canvas -->
+    <main class="flex-1 px-container-padding pt-md pb-[160px] flex flex-col gap-lg">
+        <!-- Product Card Overview -->
+        <section
+            class="bg-surface-container-lowest rounded-[20px] p-md shadow-soft border border-surface-container-high flex gap-md items-center">
+            <div class="w-24 h-24 rounded-[14px] bg-cover bg-center shrink-0 shadow-inner-soft relative overflow-hidden"
+                data-alt="A macro, top-tier commercial photograph of an artisanal Vietnamese iced milk coffee (cà phê sữa đá) served in a modern, elegant ribbed glass. Rich, dark espresso blends into a creamy, pale golden-brown condensed milk layer at the bottom, with pristine clear ice cubes. Set against a warm, clean cream-colored background with a soft, diffused shadow to highlight a premium cafe aesthetic."
+                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD-sWFIRkWBvc0CayMCIiB11S6uWCxaHmUrTONUvKlvbToT-CJUpvOBjK1cPj0FeApygG94kj_woAmCqAmiP-kzePGTk09M0FHE1OznLm-vSKbkMzOdoOKtATXEFqTaDKUBi-dEpMd3XpZ2CQ-szlEpoWI14a6QRHGXFc4NtorqfB_cAQHtfFtdyRKDRmvfvpiMZvO95vbrvja0f_vDZq0V-iACWbwIbTZ2nUlO0K9D-YP3pMZmaPdZ')">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+            </div>
+            <div class="flex-1">
+                <div class="flex flex-wrap gap-xs mb-1">
+                    <span
+                        class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[10px] uppercase tracking-wide">Cà
+                        Phê</span>
+                    <span
+                        class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[10px] uppercase tracking-wide">Lạnh</span>
+                </div>
+                <h2 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Cà phê Sữa</h2>
+                <div class="font-title-lg text-title-lg text-primary">29.000 ₫</div>
+            </div>
+        </section>
+        <!-- Unit Selection (Segmented Control) -->
+        <section class="space-y-sm">
+            <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider ml-1">Đóng gói</h3>
+            <div class="flex bg-surface-container rounded-xl p-1 shadow-inner-soft relative">
+                <!-- Active Indicator (visual trick via background) -->
+                <button
+                    class="flex-1 py-3 flex flex-col items-center justify-center rounded-lg bg-surface-container-lowest shadow-sm border border-surface-container-high text-primary z-10 transition-transform relative overflow-hidden group">
+                    <span class="material-symbols-outlined mb-1 text-[20px] icon-fill">coffee_maker</span>
+                    <span class="font-title-lg text-title-lg leading-tight">Ly</span>
+                </button>
+                <button
+                    class="flex-1 py-3 flex flex-col items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50 transition-colors z-10 relative group">
+                    <span class="material-symbols-outlined mb-1 text-[20px]">water_bottle</span>
+                    <span class="font-body-lg text-body-lg leading-tight">Chai</span>
+                    <span
+                        class="font-label-md text-[10px] absolute bottom-1 text-on-surface-variant opacity-70">+15k</span>
+                </button>
+            </div>
+        </section>
+        <!-- Quantity Selector -->
+        <section class="space-y-sm">
+            <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider ml-1">Số lượng</h3>
+            <div
+                class="flex items-center justify-between bg-surface-container-lowest rounded-xl p-xs border border-surface-container shadow-sm">
+                <button
+                    class="w-14 h-14 flex items-center justify-center rounded-lg bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[28px]">remove</span>
+                </button>
+                <div class="font-display-lg-mobile text-display-lg-mobile text-primary px-lg w-20 text-center">1</div>
+                <button
+                    class="w-14 h-14 flex items-center justify-center rounded-lg bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary active:scale-95 transition-all shadow-md">
+                    <span class="material-symbols-outlined text-[28px]">add</span>
+                </button>
+            </div>
+        </section>
+        <!-- Optional Notes -->
+        <section class="space-y-sm">
+            <div class="flex justify-between items-end ml-1">
+                <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Ghi chú</h3>
+                <span class="font-body-md text-[12px] text-outline">Tùy chọn</span>
+            </div>
+            <textarea
+                class="w-full bg-surface-container-lowest border border-surface-container-highest rounded-xl p-md font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-all shadow-inner-soft resize-none"
+                placeholder="Ví dụ: Ít đá, nhiều sữa, không đường..." rows="2"></textarea>
+        </section>
+    </main>
+    <!-- Bottom Action Area (Persistent Summary) -->
+    <div
+        class="fixed bottom-0 left-0 w-full bg-surface-container-lowest/95 backdrop-blur-xl border-t border-surface-container-high px-container-padding py-md pb-safe z-50 shadow-[0_-10px_40px_rgba(75,44,32,0.06)] rounded-t-[24px]">
+        <div class="flex justify-between items-end mb-md px-1">
+            <div class="flex flex-col">
+                <span class="font-body-md text-body-md text-on-surface-variant mb-0.5">Tổng thanh toán</span>
+                <span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">receipt_long</span> 1 Sản phẩm
+                </span>
+            </div>
+            <div class="font-display-lg-mobile text-display-lg-mobile text-primary tracking-tight">29.000 ₫</div>
+        </div>
+        <button
+            class="w-full h-[56px] bg-primary text-on-primary font-title-lg text-title-lg rounded-[16px] shadow-[0_8px_20px_rgba(50,23,13,0.25)] flex items-center justify-center gap-sm hover:bg-[#442214] active:scale-[0.98] active:shadow-sm transition-all duration-200 relative overflow-hidden group">
+            <span
+                class="absolute inset-0 w-full h-full bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></span>
+            <span class="material-symbols-outlined icon-fill relative z-10 text-[22px]">point_of_sale</span>
+            <span class="relative z-10">Xác nhận bán</span>
+        </button>
+    </div>
+</body>
+
+</html>
