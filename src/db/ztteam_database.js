@@ -22,12 +22,30 @@ export const ztteam_db = new ZTTeamDatabase();
 /** Mutex lock flag to prevent parallel seed executions */
 let ztteam_isSeeding = false;
 
-/** Seed Initial Sample Data if Database is empty */
+/** Seed Initial Sample Data if Database is empty & Auto-cleanup legacy data */
 export async function ztteam_seedInitialData() {
   if (ztteam_isSeeding) return;
   
   try {
     ztteam_isSeeding = true;
+
+    /** Auto-cleanup old sample categories if present in existing browser storage */
+    const ztteam_oldTea = await ztteam_db.categories.where('key').equals('tea').first();
+    const ztteam_oldPastry = await ztteam_db.categories.where('key').equals('pastry').first();
+    if (ztteam_oldTea) await ztteam_db.categories.delete(ztteam_oldTea.id);
+    if (ztteam_oldPastry) await ztteam_db.categories.delete(ztteam_oldPastry.id);
+
+    /** Auto-cleanup duplicate products with identical name */
+    const ztteam_allProducts = await ztteam_db.products.toArray();
+    const ztteam_seenNames = new Set();
+    for (const prod of ztteam_allProducts) {
+      if (ztteam_seenNames.has(prod.name)) {
+        await ztteam_db.products.delete(prod.id);
+      } else {
+        ztteam_seenNames.add(prod.name);
+      }
+    }
+
     const ztteam_productCount = await ztteam_db.products.count();
     
     if (ztteam_productCount === 0) {
