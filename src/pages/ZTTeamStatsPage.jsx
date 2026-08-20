@@ -1,5 +1,5 @@
-/** ZTTeam Statistics & Dashboard Page 100% Dynamic Database Categories & Realtime Charts */
-import React from 'react';
+/** ZTTeam Statistics Page with Custom Date Filter and Realtime Charts */
+import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ztteam_db } from '../db/ztteam_database';
 import { ZTTeamLayout } from '../components/layout/ZTTeamLayout';
@@ -27,14 +27,27 @@ ChartJS.register(
 );
 
 export function ZTTeamStatsPage() {
-  /** Query statistics real-time from Dexie IndexedDB */
-  const ztteam_statsData = useLiveQuery(async () => {
-    const ztteam_today = new Date();
-    const ztteam_yesterday = new Date();
-    ztteam_yesterday.setDate(ztteam_today.getDate() - 1);
+  /** State for selected date filter (Default: Today YYYY-MM-DD) */
+  const [ztteam_selectedDate, setZtteam_selectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
 
-    const ztteam_todayStr = ztteam_today.toISOString().split('T')[0];
-    const ztteam_yesterdayStr = ztteam_yesterday.toISOString().split('T')[0];
+  /** Calculate date helpers */
+  const ztteam_getTodayStr = () => new Date().toISOString().split('T')[0];
+  const ztteam_getYesterdayStr = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
+  };
+
+  /** Query statistics real-time from Dexie IndexedDB based on selectedDate */
+  const ztteam_statsData = useLiveQuery(async () => {
+    const ztteam_selectedDateObj = new Date(ztteam_selectedDate);
+    const ztteam_prevDateObj = new Date(ztteam_selectedDateObj);
+    ztteam_prevDateObj.setDate(ztteam_prevDateObj.getDate() - 1);
+
+    const ztteam_prevDateStr = ztteam_prevDateObj.toISOString().split('T')[0];
 
     const ztteam_orders = await ztteam_db.orders.toArray();
     const ztteam_dbCategories = await ztteam_db.categories.toArray();
@@ -42,31 +55,31 @@ export function ZTTeamStatsPage() {
     /** Filter categories excluding 'all' */
     const ztteam_activeCategories = ztteam_dbCategories.filter(c => c.key !== 'all');
 
-    /** Today orders filter */
-    const ztteam_todayOrders = ztteam_orders.filter(
-      (o) => o.createdAt && o.createdAt.startsWith(ztteam_todayStr)
+    /** Selected Date orders filter */
+    const ztteam_selectedOrders = ztteam_orders.filter(
+      (o) => o.createdAt && o.createdAt.startsWith(ztteam_selectedDate)
     );
-    const ztteam_yesterdayOrders = ztteam_orders.filter(
-      (o) => o.createdAt && o.createdAt.startsWith(ztteam_yesterdayStr)
+    const ztteam_prevOrders = ztteam_orders.filter(
+      (o) => o.createdAt && o.createdAt.startsWith(ztteam_prevDateStr)
     );
 
-    const ztteam_todayRevenue = ztteam_todayOrders.reduce(
+    const ztteam_selectedRevenue = ztteam_selectedOrders.reduce(
       (sum, order) => sum + (order.totalAmount || 0),
       0
     );
-    const ztteam_yesterdayRevenue = ztteam_yesterdayOrders.reduce(
+    const ztteam_prevRevenue = ztteam_prevOrders.reduce(
       (sum, order) => sum + (order.totalAmount || 0),
       0
     );
 
     let ztteam_growthPercent = 0;
-    if (ztteam_yesterdayRevenue > 0) {
-      ztteam_growthPercent = Math.round(((ztteam_todayRevenue - ztteam_yesterdayRevenue) / ztteam_yesterdayRevenue) * 100);
-    } else if (ztteam_todayRevenue > 0) {
+    if (ztteam_prevRevenue > 0) {
+      ztteam_growthPercent = Math.round(((ztteam_selectedRevenue - ztteam_prevRevenue) / ztteam_prevRevenue) * 100);
+    } else if (ztteam_selectedRevenue > 0) {
       ztteam_growthPercent = 100;
     }
 
-    /** Realtime Weekly Sales calculation (T2 - CN) */
+    /** Weekly Sales calculation (7 days ending on selected date) */
     const ztteam_weeklySales = [0, 0, 0, 0, 0, 0, 0];
     
     ztteam_orders.forEach((order) => {
@@ -93,7 +106,8 @@ export function ZTTeamStatsPage() {
       ztteam_productCatLookup[p.name.toLowerCase()] = p.category;
     });
 
-    ztteam_orders.forEach((order) => {
+    /** Calculate items sold for the selected date */
+    ztteam_selectedOrders.forEach((order) => {
       order.items?.forEach((item) => {
         const pName = (item.productName || '').toLowerCase();
         const catKey = ztteam_productCatLookup[pName] || 'coffee';
@@ -107,21 +121,21 @@ export function ZTTeamStatsPage() {
     const ztteam_categoryCounts = ztteam_activeCategories.map(c => ztteam_categoryMap[c.key]?.count || 0);
 
     return {
-      todayRevenue: ztteam_todayRevenue,
-      todayOrderCount: ztteam_todayOrders.length,
+      revenue: ztteam_selectedRevenue,
+      orderCount: ztteam_selectedOrders.length,
       growthPercent: ztteam_growthPercent,
       weeklySales: ztteam_weeklySales,
       categoryLabels: ztteam_categoryLabels,
       categoryCounts: ztteam_categoryCounts,
-      hasOrders: ztteam_orders.length > 0
+      hasOrders: ztteam_selectedOrders.length > 0
     };
-  }, []);
+  }, [ztteam_selectedDate]);
 
   const ztteam_revenueStr = ztteam_statsData
-    ? new Intl.NumberFormat('vi-VN').format(ztteam_statsData.todayRevenue)
+    ? new Intl.NumberFormat('vi-VN').format(ztteam_statsData.revenue)
     : '0';
 
-  /** Bar Chart Data (Weekly Sales 100% Realtime) */
+  /** Bar Chart Data */
   const ztteam_barChartData = {
     labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
     datasets: [
@@ -164,7 +178,7 @@ export function ZTTeamStatsPage() {
   /** Color palette for dynamic categories */
   const ztteam_colors = ['#4b2c20', '#bf9282', '#efe0cd', '#8ca55a', '#b6d081'];
 
-  /** Doughnut Chart Data (100% Dynamic from Database Categories) */
+  /** Doughnut Chart Data */
   const ztteam_doughnutChartData = {
     labels: ztteam_statsData?.categoryLabels || [],
     datasets: [
@@ -192,53 +206,88 @@ export function ZTTeamStatsPage() {
   return (
     <ZTTeamLayout ztteam_title="Thống kê">
       <div className="flex flex-col gap-md max-w-5xl mx-auto w-full">
-        {/** Page Title & Date Filter */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-xs">
-          <div>
-            <h1 className="font-display-lg-mobile text-[22px] text-primary font-bold">
-              Thống kê Doanh Thu
-            </h1>
-            <p className="font-body-md text-[13px] text-on-surface-variant">
-              Tự động tính toán từ đơn hàng thực tế
-            </p>
+        {/** Page Header & Date Filter Bar */}
+        <div className="bg-surface-container-lowest rounded-xl p-md shadow-xs border border-surface-container-high space-y-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-sm">
+            <div>
+              <h1 className="font-display-lg-mobile text-[20px] text-primary font-bold">
+                Thống kê Doanh Thu
+              </h1>
+              <p className="font-body-md text-[12px] text-on-surface-variant">
+                Lọc xem doanh thu và đơn hàng theo từng ngày
+              </p>
+            </div>
+
+            {/** Date Quick Filter Preset & Custom Date Picker */}
+            <div className="flex flex-wrap items-center gap-xs">
+              <button
+                onClick={() => setZtteam_selectedDate(ztteam_getTodayStr())}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-pointer transition-all ${
+                  ztteam_selectedDate === ztteam_getTodayStr()
+                    ? 'bg-primary text-on-primary shadow-xs'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                }`}
+              >
+                Hôm nay
+              </button>
+              <button
+                onClick={() => setZtteam_selectedDate(ztteam_getYesterdayStr())}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-pointer transition-all ${
+                  ztteam_selectedDate === ztteam_getYesterdayStr()
+                    ? 'bg-primary text-on-primary shadow-xs'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                }`}
+              >
+                Hôm qua
+              </button>
+              <div className="flex items-center gap-1 bg-surface-container border border-surface-container-high rounded-lg px-2 py-1">
+                <span className="material-symbols-outlined text-[16px] text-primary">calendar_today</span>
+                <input
+                  type="date"
+                  value={ztteam_selectedDate}
+                  onChange={(e) => setZtteam_selectedDate(e.target.value)}
+                  className="bg-transparent font-title-lg text-[12px] text-on-surface outline-none cursor-pointer"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         {/** Bento Grid: Key Metrics */}
         <div className="grid grid-cols-2 gap-sm">
-          {/** Total Revenue Card */}
+          {/** Selected Date Revenue Card */}
           <div className="bg-secondary-fixed rounded-xl p-md shadow-xs flex flex-col justify-between">
             <span className="font-label-md text-[11px] text-on-secondary-container uppercase tracking-wider font-semibold">
-              Doanh thu hôm nay
+              Doanh thu ({new Date(ztteam_selectedDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })})
             </span>
             <div className="mt-1">
               <span className="font-display-lg-mobile text-[22px] text-primary font-bold block">
                 {ztteam_revenueStr} <span className="text-[12px]">đ</span>
               </span>
-              <span className={`text-[12px] font-semibold flex items-center gap-0.5 mt-0.5 ${ztteam_growth >= 0 ? 'text-on-tertiary-container' : 'text-error'}`}>
+              <span className={`text-[11px] font-semibold flex items-center gap-0.5 mt-0.5 ${ztteam_growth >= 0 ? 'text-on-tertiary-container' : 'text-error'}`}>
                 <span className="material-symbols-outlined text-[14px]">
                   {ztteam_growth >= 0 ? 'arrow_upward' : 'arrow_downward'}
                 </span>
-                {ztteam_growth > 0 ? `+${ztteam_growth}% so với hôm qua` : `${ztteam_growth}% so với hôm qua`}
+                {ztteam_growth > 0 ? `+${ztteam_growth}% so với ngày trước` : `${ztteam_growth}% so với ngày trước`}
               </span>
             </div>
           </div>
 
-          {/** Total Orders Card */}
+          {/** Selected Date Orders Count Card */}
           <div className="bg-surface-container rounded-xl p-md shadow-xs flex flex-col justify-between">
             <span className="font-label-md text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">
-              Đơn hàng hôm nay
+              Tổng số đơn hàng
             </span>
             <div className="mt-1">
               <span className="font-display-lg-mobile text-[22px] text-on-surface font-bold">
-                {ztteam_statsData?.todayOrderCount || 0} <span className="text-[12px]">đơn</span>
+                {ztteam_statsData?.orderCount || 0} <span className="text-[12px]">đơn</span>
               </span>
             </div>
           </div>
         </div>
 
         {/** Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-md mt-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-md mt-xs">
           {/** Weekly Sales Chart (Bar) */}
           <div className="bg-surface-container-lowest rounded-xl p-md shadow-xs lg:col-span-2 border border-surface-container-high">
             <div className="flex justify-between items-center mb-sm">
