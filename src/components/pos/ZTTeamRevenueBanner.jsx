@@ -1,7 +1,7 @@
-/** ZTTeam Revenue Banner Component Realtime Growth Calculation */
+/** ZTTeam Revenue Banner Component Realtime Growth Calculation with Local Timezone */
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ztteam_db } from '../../db/ztteam_database';
+import { ztteam_db, ztteam_getLocalDateStr } from '../../db/ztteam_database';
 
 export function ZTTeamRevenueBanner() {
   /** Calculate Today and Yesterday Total Revenue Realtime */
@@ -10,16 +10,16 @@ export function ZTTeamRevenueBanner() {
     const ztteam_yesterday = new Date();
     ztteam_yesterday.setDate(ztteam_today.getDate() - 1);
 
-    const ztteam_todayStr = ztteam_today.toISOString().split('T')[0];
-    const ztteam_yesterdayStr = ztteam_yesterday.toISOString().split('T')[0];
+    const ztteam_todayStr = ztteam_getLocalDateStr(ztteam_today);
+    const ztteam_yesterdayStr = ztteam_getLocalDateStr(ztteam_yesterday);
 
     const ztteam_orders = await ztteam_db.orders.toArray();
 
     const ztteam_todayOrders = ztteam_orders.filter(
-      (o) => o.createdAt && o.createdAt.startsWith(ztteam_todayStr) && o.status === 'completed'
+      (o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_todayStr && o.status === 'completed'
     );
     const ztteam_yesterdayOrders = ztteam_orders.filter(
-      (o) => o.createdAt && o.createdAt.startsWith(ztteam_yesterdayStr) && o.status === 'completed'
+      (o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_yesterdayStr && o.status === 'completed'
     );
 
     const ztteam_todayRev = ztteam_todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);

@@ -1,25 +1,25 @@
 /** ZTTeam Orders History Page with Date Filter & Summary Stats Cards */
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ztteam_db } from '../db/ztteam_database';
+import { ztteam_db, ztteam_getLocalDateStr } from '../db/ztteam_database';
 import { ZTTeamLayout } from '../components/layout/ZTTeamLayout';
 import { ztteam_useNotification } from '../stores/ztteam_notificationContext';
 
 export function ZTTeamOrdersPage() {
   const { ztteam_showToast, ztteam_showConfirm } = ztteam_useNotification();
 
-  /** Date filter states */
+  /** Date filter states in Local Timezone */
   const [ztteam_filterMode, setZtteam_filterMode] = useState('today');
   const [ztteam_selectedDate, setZtteam_selectedDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return ztteam_getLocalDateStr();
   });
 
   /** Date helper strings */
-  const ztteam_getTodayStr = () => new Date().toISOString().split('T')[0];
+  const ztteam_getTodayStr = () => ztteam_getLocalDateStr();
   const ztteam_getYesterdayStr = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    return ztteam_getLocalDateStr(yesterday);
   };
 
   /** Query Orders & calculate summary stats from Dexie IndexedDB */
@@ -29,12 +29,12 @@ export function ZTTeamOrdersPage() {
 
     if (ztteam_filterMode === 'today') {
       const todayStr = ztteam_getTodayStr();
-      filteredOrders = allOrders.filter((o) => o.createdAt && o.createdAt.startsWith(todayStr));
+      filteredOrders = allOrders.filter((o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === todayStr);
     } else if (ztteam_filterMode === 'yesterday') {
       const yesterdayStr = ztteam_getYesterdayStr();
-      filteredOrders = allOrders.filter((o) => o.createdAt && o.createdAt.startsWith(yesterdayStr));
+      filteredOrders = allOrders.filter((o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === yesterdayStr);
     } else if (ztteam_filterMode === 'custom') {
-      filteredOrders = allOrders.filter((o) => o.createdAt && o.createdAt.startsWith(ztteam_selectedDate));
+      filteredOrders = allOrders.filter((o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_selectedDate);
     }
 
     /** Calculate totals for filtered orders */

@@ -19,6 +19,16 @@ export class ZTTeamDatabase extends Dexie {
 /** Export Database Instance */
 export const ztteam_db = new ZTTeamDatabase();
 
+/** Helper to convert date to local YYYY-MM-DD string according to device timezone */
+export function ztteam_getLocalDateStr(dateInput = new Date()) {
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /** Mutex lock flag to prevent parallel seed executions */
 let ztteam_isSeeding = false;
 

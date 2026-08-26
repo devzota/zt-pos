@@ -1,7 +1,7 @@
-/** ZTTeam Statistics Page with Custom Date Filter and Realtime Charts */
+/** ZTTeam Statistics Page with Custom Date Filter in Local Timezone and Realtime Charts */
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ztteam_db } from '../db/ztteam_database';
+import { ztteam_db, ztteam_getLocalDateStr } from '../db/ztteam_database';
 import { ZTTeamLayout } from '../components/layout/ZTTeamLayout';
 import {
   Chart as ChartJS,
@@ -27,27 +27,27 @@ ChartJS.register(
 );
 
 export function ZTTeamStatsPage() {
-  /** State for selected date filter (Default: Today YYYY-MM-DD) */
+  /** State for selected date filter (Default: Today YYYY-MM-DD in Local Time) */
   const [ztteam_selectedDate, setZtteam_selectedDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return ztteam_getLocalDateStr();
   });
 
-  /** Calculate date helpers */
-  const ztteam_getTodayStr = () => new Date().toISOString().split('T')[0];
+  /** Calculate date helpers in Local Timezone */
+  const ztteam_getTodayStr = () => ztteam_getLocalDateStr();
   const ztteam_getYesterdayStr = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    return ztteam_getLocalDateStr(yesterday);
   };
 
   /** Query statistics real-time from Dexie IndexedDB based on selectedDate */
   const ztteam_statsData = useLiveQuery(async () => {
-    const ztteam_selectedDateObj = new Date(ztteam_selectedDate);
+    const [year, month, day] = ztteam_selectedDate.split('-').map(Number);
+    const ztteam_selectedDateObj = new Date(year, month - 1, day);
     const ztteam_prevDateObj = new Date(ztteam_selectedDateObj);
     ztteam_prevDateObj.setDate(ztteam_prevDateObj.getDate() - 1);
 
-    const ztteam_prevDateStr = ztteam_prevDateObj.toISOString().split('T')[0];
+    const ztteam_prevDateStr = ztteam_getLocalDateStr(ztteam_prevDateObj);
 
     const ztteam_orders = await ztteam_db.orders.toArray();
     const ztteam_dbCategories = await ztteam_db.categories.toArray();
@@ -55,12 +55,12 @@ export function ZTTeamStatsPage() {
     /** Filter categories excluding 'all' */
     const ztteam_activeCategories = ztteam_dbCategories.filter(c => c.key !== 'all');
 
-    /** Selected Date orders filter */
+    /** Selected Date orders filter using Local Timezone comparison */
     const ztteam_selectedOrders = ztteam_orders.filter(
-      (o) => o.createdAt && o.createdAt.startsWith(ztteam_selectedDate)
+      (o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_selectedDate
     );
     const ztteam_prevOrders = ztteam_orders.filter(
-      (o) => o.createdAt && o.createdAt.startsWith(ztteam_prevDateStr)
+      (o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_prevDateStr
     );
 
     const ztteam_selectedRevenue = ztteam_selectedOrders.reduce(
@@ -214,7 +214,7 @@ export function ZTTeamStatsPage() {
                 Thống kê Doanh Thu
               </h1>
               <p className="font-body-md text-[12px] text-on-surface-variant">
-                Lọc xem doanh thu và đơn hàng theo từng ngày
+                Lọc xem doanh thu và đơn hàng theo từng ngày theo giờ Việt Nam
               </p>
             </div>
 
