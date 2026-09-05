@@ -16,6 +16,12 @@ export function ZTTeamCheckoutPage() {
   const [ztteam_note, setZtteam_note] = useState('');
   const [ztteam_isSubmitting, setZtteam_isSubmitting] = useState(false);
 
+  /** State for Customer Debt Management */
+  const [ztteam_paymentMethod, setZtteam_paymentMethod] = useState('paid'); /** 'paid' or 'debt' */
+  const [ztteam_customerName, setZtteam_customerName] = useState('');
+  const [ztteam_customerPhone, setZtteam_customerPhone] = useState('');
+  const [ztteam_paidAmountInput, setZtteam_paidAmountInput] = useState('');
+
   /** Default fallback product if direct access */
   const ztteam_product = ztteam_activeProduct || {
     id: 1,
@@ -39,13 +45,31 @@ export function ZTTeamCheckoutPage() {
   /** Confirm and Save Order to Dexie IndexedDB */
   const ztteam_handleConfirmSell = async () => {
     try {
+      /** Validate Customer Name when debt mode is active */
+      if (ztteam_paymentMethod === 'debt' && !ztteam_customerName.trim()) {
+        ztteam_showToast('Vui lòng nhập tên khách nợ!', 'error');
+        return;
+      }
+
       setZtteam_isSubmitting(true);
+
+      const ztteam_isDebt = ztteam_paymentMethod === 'debt';
+      const ztteam_userPaidAmount = ztteam_isDebt
+        ? Math.min(ztteam_totalAmount, Math.max(0, Number(ztteam_paidAmountInput) || 0))
+        : ztteam_totalAmount;
+      const ztteam_debtAmount = ztteam_isDebt ? Math.max(0, ztteam_totalAmount - ztteam_userPaidAmount) : 0;
+      const ztteam_paymentStatus = ztteam_debtAmount === 0 ? 'paid' : (ztteam_userPaidAmount > 0 ? 'partial' : 'unpaid');
 
       const ztteam_newOrder = {
         createdAt: new Date().toISOString(),
         totalAmount: ztteam_totalAmount,
         totalItems: ztteam_quantity,
         status: 'completed',
+        paymentStatus: ztteam_paymentStatus,
+        customerName: ztteam_isDebt ? ztteam_customerName.trim() : '',
+        customerPhone: ztteam_isDebt ? ztteam_customerPhone.trim() : '',
+        paidAmount: ztteam_userPaidAmount,
+        debtAmount: ztteam_debtAmount,
         items: [
           {
             productId: ztteam_product.id,
@@ -61,7 +85,7 @@ export function ZTTeamCheckoutPage() {
       await ztteam_db.orders.add(ztteam_newOrder);
       
       /** Show Toast & Navigate to Orders history */
-      ztteam_showToast('Xác nhận bán thành công!');
+      ztteam_showToast(ztteam_isDebt ? 'Ghi nợ đơn hàng thành công!' : 'Xác nhận bán thành công!');
       navigate('/orders');
     } catch (error) {
       console.error('Error saving order:', error);
@@ -182,6 +206,98 @@ export function ZTTeamCheckoutPage() {
               <span className="material-symbols-outlined text-[28px]">add</span>
             </button>
           </div>
+        </section>
+
+        {/** Payment Method Selection & Debt Form */}
+        <section className="space-y-sm">
+          <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider ml-1 font-semibold">
+            Hình thức thanh toán
+          </h3>
+          <div className="grid grid-cols-2 gap-sm">
+            <button
+              type="button"
+              onClick={() => setZtteam_paymentMethod('paid')}
+              className={`py-3 px-md rounded-xl flex items-center justify-center gap-2 border font-semibold text-[14px] transition-all cursor-pointer ${
+                ztteam_paymentMethod === 'paid'
+                  ? 'bg-primary text-on-primary border-primary shadow-xs'
+                  : 'bg-surface-container-lowest text-on-surface-variant border-surface-container-high hover:bg-surface-container'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">payments</span>
+              <span>Thanh toán ngay</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setZtteam_paymentMethod('debt')}
+              className={`py-3 px-md rounded-xl flex items-center justify-center gap-2 border font-semibold text-[14px] transition-all cursor-pointer ${
+                ztteam_paymentMethod === 'debt'
+                  ? 'bg-error text-white border-error shadow-xs'
+                  : 'bg-surface-container-lowest text-on-surface-variant border-surface-container-high hover:bg-surface-container'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">person_add</span>
+              <span>Ghi nợ (Khách nợ)</span>
+            </button>
+          </div>
+
+          {/** Debt Customer Form */}
+          {ztteam_paymentMethod === 'debt' && (
+            <div className="bg-error-container/20 border border-error/30 rounded-xl p-md space-y-sm mt-sm">
+              <div className="flex items-center gap-2 text-error font-bold text-[14px]">
+                <span className="material-symbols-outlined text-[20px]">error_med</span>
+                <span>Thông tin ghi nợ</span>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-on-surface-variant mb-1">
+                  Tên khách nợ <span className="text-error">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Anh Nam công an, Chị Hoa..."
+                  value={ztteam_customerName}
+                  onChange={(e) => setZtteam_customerName(e.target.value)}
+                  className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-2.5 font-body-md text-on-surface focus:border-error focus:ring-1 focus:ring-error outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-on-surface-variant mb-1">
+                  Số điện thoại khách (Tùy chọn)
+                </label>
+                <input
+                  type="tel"
+                  placeholder="090..."
+                  value={ztteam_customerPhone}
+                  onChange={(e) => setZtteam_customerPhone(e.target.value)}
+                  className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-2.5 font-body-md text-on-surface focus:border-error outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-on-surface-variant mb-1">
+                  Khách trả trước (đ)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={ztteam_paidAmountInput}
+                  onChange={(e) => setZtteam_paidAmountInput(e.target.value)}
+                  className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-2.5 font-body-md text-on-surface focus:border-error outline-none transition-all font-semibold text-primary"
+                />
+              </div>
+
+              <div className="flex justify-between items-center bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/30 text-[13px]">
+                <span className="text-on-surface-variant font-semibold">Số tiền ghi nợ:</span>
+                <span className="font-bold text-error text-[16px]">
+                  {new Intl.NumberFormat('vi-VN').format(
+                    Math.max(0, ztteam_totalAmount - (Number(ztteam_paidAmountInput) || 0))
+                  )}đ
+                </span>
+              </div>
+            </div>
+          )}
         </section>
 
         {/** Optional Notes */}

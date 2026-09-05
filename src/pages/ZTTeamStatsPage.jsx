@@ -64,11 +64,15 @@ export function ZTTeamStatsPage() {
     );
 
     const ztteam_selectedRevenue = ztteam_selectedOrders.reduce(
-      (sum, order) => sum + (order.totalAmount || 0),
+      (sum, order) => sum + (order.paidAmount !== undefined ? order.paidAmount : (order.totalAmount || 0)),
+      0
+    );
+    const ztteam_selectedDebt = ztteam_selectedOrders.reduce(
+      (sum, order) => sum + (order.debtAmount || 0),
       0
     );
     const ztteam_prevRevenue = ztteam_prevOrders.reduce(
-      (sum, order) => sum + (order.totalAmount || 0),
+      (sum, order) => sum + (order.paidAmount !== undefined ? order.paidAmount : (order.totalAmount || 0)),
       0
     );
 
@@ -122,6 +126,7 @@ export function ZTTeamStatsPage() {
 
     return {
       revenue: ztteam_selectedRevenue,
+      debt: ztteam_selectedDebt,
       orderCount: ztteam_selectedOrders.length,
       growthPercent: ztteam_growthPercent,
       weeklySales: ztteam_weeklySales,
@@ -254,11 +259,11 @@ export function ZTTeamStatsPage() {
         </div>
 
         {/** Bento Grid: Key Metrics */}
-        <div className="grid grid-cols-2 gap-sm">
-          {/** Selected Date Revenue Card */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-sm">
+          {/** Card 1: Selected Date Collected Revenue */}
           <div className="bg-secondary-fixed rounded-xl p-md shadow-xs flex flex-col justify-between">
             <span className="font-label-md text-[11px] text-on-secondary-container uppercase tracking-wider font-semibold">
-              Doanh thu ({new Date(ztteam_selectedDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })})
+              Thực thu ({new Date(ztteam_selectedDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })})
             </span>
             <div className="mt-1">
               <span className="font-display-lg-mobile text-[22px] text-primary font-bold block">
@@ -268,18 +273,33 @@ export function ZTTeamStatsPage() {
                 <span className="material-symbols-outlined text-[14px]">
                   {ztteam_growth >= 0 ? 'arrow_upward' : 'arrow_downward'}
                 </span>
-                {ztteam_growth > 0 ? `+${ztteam_growth}% so với ngày trước` : `${ztteam_growth}% so với ngày trước`}
+                {ztteam_growth > 0 ? `+${ztteam_growth}%` : `${ztteam_growth}%`}
               </span>
             </div>
           </div>
 
-          {/** Selected Date Orders Count Card */}
+          {/** Card 2: Selected Date Debt Amount */}
+          <div className="bg-error-container/30 border border-error/20 rounded-xl p-md shadow-xs flex flex-col justify-between">
+            <span className="font-label-md text-[11px] text-error uppercase tracking-wider font-semibold">
+              Còn nợ chưa thu
+            </span>
+            <div className="mt-1">
+              <span className="font-display-lg-mobile text-[22px] text-error font-bold block">
+                {new Intl.NumberFormat('vi-VN').format(ztteam_statsData?.debt || 0)} <span className="text-[12px]">đ</span>
+              </span>
+              <span className="text-[11px] text-on-surface-variant font-semibold">
+                Tiền nợ chưa lấy về
+              </span>
+            </div>
+          </div>
+
+          {/** Card 3: Selected Date Orders Count */}
           <div className="bg-surface-container rounded-xl p-md shadow-xs flex flex-col justify-between">
             <span className="font-label-md text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">
               Tổng số đơn hàng
             </span>
             <div className="mt-1">
-              <span className="font-display-lg-mobile text-[22px] text-on-surface font-bold">
+              <span className="font-display-lg-mobile text-[22px] text-on-surface font-bold block">
                 {ztteam_statsData?.orderCount || 0} <span className="text-[12px]">đơn</span>
               </span>
             </div>

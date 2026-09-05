@@ -22,8 +22,17 @@ export function ZTTeamRevenueBanner() {
       (o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_yesterdayStr && o.status === 'completed'
     );
 
-    const ztteam_todayRev = ztteam_todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-    const ztteam_yesterdayRev = ztteam_yesterdayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+    const ztteam_todayRev = ztteam_todayOrders.reduce((sum, order) => {
+      if (order.paidAmount !== undefined) return sum + order.paidAmount;
+      return sum + (order.totalAmount || 0);
+    }, 0);
+
+    const ztteam_todayDebt = ztteam_todayOrders.reduce((sum, order) => sum + (order.debtAmount || 0), 0);
+
+    const ztteam_yesterdayRev = ztteam_yesterdayOrders.reduce((sum, order) => {
+      if (order.paidAmount !== undefined) return sum + order.paidAmount;
+      return sum + (order.totalAmount || 0);
+    }, 0);
 
     let ztteam_growthPercent = 0;
     if (ztteam_yesterdayRev > 0) {
@@ -34,12 +43,17 @@ export function ZTTeamRevenueBanner() {
 
     return {
       todayRevenue: ztteam_todayRev,
+      todayDebt: ztteam_todayDebt,
       growthPercent: ztteam_growthPercent
     };
   }, []);
 
   const ztteam_formattedRevenue = ztteam_revenueStats
     ? new Intl.NumberFormat('vi-VN').format(ztteam_revenueStats.todayRevenue) + 'đ'
+    : '0đ';
+
+  const ztteam_formattedDebt = ztteam_revenueStats?.todayDebt
+    ? new Intl.NumberFormat('vi-VN').format(ztteam_revenueStats.todayDebt) + 'đ'
     : '0đ';
 
   const ztteam_formattedDate = new Date().toLocaleDateString('vi-VN', {
@@ -54,14 +68,21 @@ export function ZTTeamRevenueBanner() {
       <div>
         <div className="flex items-center gap-1.5 mb-0.5">
           <span className="font-label-md text-[11px] text-primary font-semibold uppercase tracking-wide">
-            Doanh thu hôm nay
+            Thực thu hôm nay
           </span>
           <span className="font-label-md text-[10px] text-on-surface-variant bg-surface px-1.5 py-0.5 rounded-full border border-outline-variant/30">
             {ztteam_formattedDate}
           </span>
         </div>
-        <div className="font-display-md text-[20px] leading-tight text-primary font-bold">
-          {ztteam_formattedRevenue}
+        <div className="flex items-baseline gap-2">
+          <span className="font-display-md text-[20px] leading-tight text-primary font-bold">
+            {ztteam_formattedRevenue}
+          </span>
+          {(ztteam_revenueStats?.todayDebt || 0) > 0 && (
+            <span className="text-[11px] font-semibold text-error bg-error-container/30 border border-error/20 px-2 py-0.5 rounded-full">
+              Chưa thu: {ztteam_formattedDebt}
+            </span>
+          )}
         </div>
       </div>
 
