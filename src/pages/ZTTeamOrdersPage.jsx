@@ -17,6 +17,12 @@ export function ZTTeamOrdersPage() {
   /** Debt Payment Status Filter State ('all' | 'paid' | 'debt') */
   const [ztteam_paymentFilter, setZtteam_paymentFilter] = useState('all');
 
+  /** Modal State for Editing / Converting Order to Debt */
+  const [ztteam_editingOrder, setZtteam_editingOrder] = useState(null);
+  const [ztteam_editName, setZtteam_editName] = useState('');
+  const [ztteam_editPhone, setZtteam_editPhone] = useState('');
+  const [ztteam_editPaidAmount, setZtteam_editPaidAmount] = useState('0');
+
   /** Date helper strings */
   const ztteam_getTodayStr = () => ztteam_getLocalDateStr();
   const ztteam_getYesterdayStr = () => {
@@ -117,6 +123,44 @@ export function ZTTeamOrdersPage() {
         ztteam_showToast(`Đã thu nợ ${ztteam_debtFormatted} từ ${ztteam_customer} thành công!`);
       }
     });
+  };
+
+  /** Open Modal to Convert or Edit Debt Information for an Order */
+  const ztteam_handleOpenConvertDebtModal = (order) => {
+    setZtteam_editingOrder(order);
+    setZtteam_editName(order.customerName || '');
+    setZtteam_editPhone(order.customerPhone || '');
+    setZtteam_editPaidAmount(order.paidAmount !== undefined ? String(order.paidAmount) : '0');
+  };
+
+  /** Save Debt Conversion from Modal */
+  const ztteam_handleSaveDebtConversion = async () => {
+    if (!ztteam_editingOrder) return;
+    if (!ztteam_editName.trim()) {
+      ztteam_showToast('Vui lòng nhập tên khách nợ!', 'error');
+      return;
+    }
+
+    try {
+      const ztteam_total = ztteam_editingOrder.totalAmount || 0;
+      const ztteam_paid = Math.min(ztteam_total, Math.max(0, Number(ztteam_editPaidAmount) || 0));
+      const ztteam_debt = Math.max(0, ztteam_total - ztteam_paid);
+      const ztteam_payStatus = ztteam_debt === 0 ? 'paid' : (ztteam_paid > 0 ? 'partial' : 'unpaid');
+
+      await ztteam_db.orders.update(ztteam_editingOrder.id, {
+        paymentStatus: ztteam_payStatus,
+        customerName: ztteam_editName.trim(),
+        customerPhone: ztteam_editPhone.trim(),
+        paidAmount: ztteam_paid,
+        debtAmount: ztteam_debt
+      });
+
+      ztteam_showToast(`Đã cập nhật đơn hàng #${ztteam_editingOrder.id} thành đơn nợ thành công!`);
+      setZtteam_editingOrder(null);
+    } catch (error) {
+      console.error('Error converting order to debt:', error);
+      ztteam_showToast('Có lỗi khi cập nhật đơn nợ!', 'error');
+    }
   };
 
   const ztteam_formattedCollectedRev = ztteam_ordersData
@@ -351,8 +395,8 @@ export function ZTTeamOrdersPage() {
                   </div>
 
                   {/** Footer of order card */}
-                  <div className="flex justify-between items-center border-t border-surface-container-high pt-sm mt-xs">
-                    <div className="flex items-center gap-md">
+                  <div className="flex justify-between items-center border-t border-surface-container-high pt-sm mt-xs flex-wrap gap-xs">
+                    <div className="flex items-center gap-xs sm:gap-sm flex-wrap">
                       <button
                         onClick={() => ztteam_handleDeleteOrder(order.id)}
                         className="text-error hover:opacity-80 text-[12px] flex items-center gap-1 cursor-pointer font-semibold"
@@ -360,12 +404,22 @@ export function ZTTeamOrdersPage() {
                         <span className="material-symbols-outlined text-[16px]">delete</span> Xóa đơn
                       </button>
 
+                      {/** Convert or Edit Debt Button */}
+                      <button
+                        onClick={() => ztteam_handleOpenConvertDebtModal(order)}
+                        className="text-on-surface-variant hover:text-error hover:bg-error-container/20 px-2 py-1 rounded-lg text-[12px] flex items-center gap-1 cursor-pointer font-semibold border border-outline-variant/40 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">edit_note</span>
+                        <span>{ztteam_isDebt ? 'Sửa nợ' : 'Chuyển nợ'}</span>
+                      </button>
+
+                      {/** Clear Debt Action Button */}
                       {ztteam_isDebt && (
                         <button
                           onClick={() => ztteam_handleClearDebt(order)}
-                          className="bg-primary text-on-primary hover:bg-[#442214] px-3 py-1.5 rounded-lg text-[12px] flex items-center gap-1 cursor-pointer font-bold shadow-xs active:scale-95 transition-all"
+                          className="bg-primary text-on-primary hover:bg-[#442214] px-3 py-1 rounded-lg text-[12px] flex items-center gap-1 cursor-pointer font-bold shadow-xs active:scale-95 transition-all"
                         >
-                          <span className="material-symbols-outlined text-[16px]">check_circle</span> Thu nợ (Trả tiền)
+                          <span className="material-symbols-outlined text-[16px]">check_circle</span> Thu nợ
                         </button>
                       )}
                     </div>
@@ -380,6 +434,105 @@ export function ZTTeamOrdersPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/** Convert Paid Order to Debt Modal */}
+        {ztteam_editingOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+            <div className="bg-surface-container-lowest border border-surface-container-high rounded-[20px] p-md sm:p-lg max-w-md w-full shadow-2xl space-y-md">
+              <div className="flex items-center justify-between border-b border-surface-container-high pb-sm">
+                <div className="flex items-center gap-2 text-error">
+                  <span className="material-symbols-outlined text-[24px]">edit_note</span>
+                  <h3 className="font-title-lg text-[18px] font-bold text-on-surface">
+                    Chuyển thành đơn nợ #{ztteam_editingOrder.id}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setZtteam_editingOrder(null)}
+                  className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+
+              <div className="bg-surface-container p-3 rounded-xl flex justify-between items-center text-[14px]">
+                <span className="text-on-surface-variant font-semibold">Tổng tiền đơn hàng:</span>
+                <span className="font-bold text-primary text-[16px]">
+                  {new Intl.NumberFormat('vi-VN').format(ztteam_editingOrder.totalAmount || 0)}đ
+                </span>
+              </div>
+
+              {/** Form Inputs */}
+              <div className="space-y-sm">
+                <div>
+                  <label className="block text-[12px] font-semibold text-on-surface-variant mb-1">
+                    Tên khách nợ <span className="text-error">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Anh Nam công an, Chị Hoa..."
+                    value={ztteam_editName}
+                    onChange={(e) => setZtteam_editName(e.target.value)}
+                    className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-2.5 font-body-md text-on-surface focus:border-error outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-semibold text-on-surface-variant mb-1">
+                    Số điện thoại khách (Tùy chọn)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="090..."
+                    value={ztteam_editPhone}
+                    onChange={(e) => setZtteam_editPhone(e.target.value)}
+                    className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-2.5 font-body-md text-on-surface focus:border-error outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-semibold text-on-surface-variant mb-1">
+                    Khách đã trả trước (đ)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={ztteam_editPaidAmount}
+                    onChange={(e) => setZtteam_editPaidAmount(e.target.value)}
+                    className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-2.5 font-body-md text-on-surface focus:border-error outline-none transition-all font-semibold text-primary"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center bg-error-container/20 p-2.5 rounded-lg border border-error/30 text-[13px]">
+                  <span className="text-on-surface-variant font-semibold">Số tiền ghi nợ:</span>
+                  <span className="font-bold text-error text-[16px]">
+                    {new Intl.NumberFormat('vi-VN').format(
+                      Math.max(0, (ztteam_editingOrder.totalAmount || 0) - (Number(ztteam_editPaidAmount) || 0))
+                    )}đ
+                  </span>
+                </div>
+              </div>
+
+              {/** Action Buttons */}
+              <div className="flex items-center justify-end gap-sm border-t border-surface-container-high pt-md">
+                <button
+                  type="button"
+                  onClick={() => setZtteam_editingOrder(null)}
+                  className="px-4 py-2 rounded-xl text-[14px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high cursor-pointer transition-all"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={ztteam_handleSaveDebtConversion}
+                  className="px-4 py-2 rounded-xl text-[14px] font-bold text-white bg-error hover:bg-red-700 cursor-pointer shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[18px]">save</span>
+                  <span>Lưu ghi nợ</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
