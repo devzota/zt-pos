@@ -1,9 +1,37 @@
-/** ZTTeam Orders History Page with Date Filter, Debt Management & Summary Stats Cards */
+/** ZTTeam Orders History Page with Date Filter, Debt Management, Smart Customer Filter & Summary Stats Cards */
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ztteam_db, ztteam_getLocalDateStr } from '../db/ztteam_database';
 import { ZTTeamLayout } from '../components/layout/ZTTeamLayout';
 import { ztteam_useNotification } from '../stores/ztteam_notificationContext';
+
+/** Normalize customer name & phone into a unified key for fuzzy grouping (A Nam = Anh nam = anh nam) */
+export function ztteam_normalizeCustomerKey(name = '', phone = '') {
+  const cleanPhone = (phone || '').replace(/\D/g, '');
+  
+  let cleanName = (name || '').trim().toLowerCase();
+  
+  /** Normalize Vietnamese accents to base characters */
+  cleanName = cleanName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+
+  /** Remove dots, commas, dashes */
+  cleanName = cleanName.replace(/[.,\-_/]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  /** Normalize common honorific abbreviations: a / a. -> anh, c / c. -> chi, e / e. -> em, b / b. -> bac */
+  cleanName = cleanName
+    .replace(/^a\s+/, 'anh ')
+    .replace(/^c\s+/, 'chi ')
+    .replace(/^e\s+/, 'em ')
+    .replace(/^b\s+/, 'bac ');
+
+  return {
+    nameKey: cleanName,
+    phoneKey: cleanPhone
+  };
+}
 
 export function ZTTeamOrdersPage() {
   const { ztteam_showToast, ztteam_showConfirm } = ztteam_useNotification();
@@ -16,6 +44,10 @@ export function ZTTeamOrdersPage() {
 
   /** Debt Payment Status Filter State ('all' | 'paid' | 'debt') */
   const [ztteam_paymentFilter, setZtteam_paymentFilter] = useState('all');
+
+  /** Smart Customer Search & Suggestion States */
+  const [ztteam_searchKeyword, setZtteam_searchKeyword] = useState('');
+  const [ztteam_selectedCustomerKey, setZtteam_selectedCustomerKey] = useState(null);
 
   /** Modal State for Editing / Converting Order to Debt */
   const [ztteam_editingOrder, setZtteam_editingOrder] = useState(null);
@@ -47,29 +79,118 @@ export function ZTTeamOrdersPage() {
       dateFilteredOrders = allOrders.filter((o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_selectedDate);
     }
 
-    /** Calculate Debt Metrics for the date-filtered range */
-    const totalGrossRevenue = dateFilteredOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-    const totalDebtAmount = dateFilteredOrders.reduce((sum, order) => sum + (order.debtAmount || 0), 0);
-    const totalCollectedRevenue = dateFilteredOrders.reduce((sum, order) => {
+    /** 2. Group customers smartly by normalized name or phone (A Nam = Anh nam) */
+    const customerGroupMap = new Map();
+
+    dateFilteredOrders.forEach((order) => {
+      const orderName = (order.customerName || '').trim();
+      const orderPhone = (order.customerPhone || '').trim();
+
+      if (!orderName && !orderPhone && (!order.debtAmount || order.debtAmount === 0)) {
+        return;
+      }
+
+      const { nameKey, phoneKey } = ztteam_normalizeCustomerKey(orderName, orderPhone);
+      const groupKey = phoneKey ? `p_${phoneKey}` : (nameKey || `order_${order.id}`);
+
+      if (!customerGroupMap.has(groupKey)) {
+        customerGroupMap.set(groupKey, {
+          key: groupKey,
+          nameKey,
+          phoneKey,
+          displayName: orderName || (orderPhone ? `Khách ${orderPhone}` : `Đơn #${order.id}`),
+          phone: orderPhone,
+          orderCount: 1,
+          totalDebt: order.debtAmount || 0,
+          totalPaid: order.paidAmount !== undefined ? order.paidAmount : (order.totalAmount || 0)
+        });
+      } else {
+        const group = customerGroupMap.get(groupKey);
+        group.orderCount += 1;
+        group.totalDebt += (order.debtAmount || 0);
+        group.totalPaid += (order.paidAmount !== undefined ? order.paidAmount : (order.totalAmount || 0));
+        if (orderName) {
+          /** Keep preferred display name (capitalized or longer) */
+          if (orderName.length > group.displayName.length || (/^[A-Z]/.test(orderName) && !/^[A-Z]/.test(group.displayName))) {
+            group.displayName = orderName;
+          }
+        }
+        if (!group.phone && orderPhone) {
+          group.phone = orderPhone;
+        }
+      }
+    });
+
+    const smartCustomerGroups = Array.from(customerGroupMap.values()).sort(
+      (a, b) => (b.totalDebt - a.totalDebt) || (b.orderCount - a.orderCount)
+    );
+
+    /** 3. Filter by Payment Status Sub-tab */
+    let statusFilteredOrders = dateFilteredOrders;
+    if (ztteam_paymentFilter === 'paid') {
+      statusFilteredOrders = dateFilteredOrders.filter(
+        (o) => (!o.paymentStatus || o.paymentStatus === 'paid') && (!o.debtAmount || o.debtAmount === 0)
+      );
+    } else if (ztteam_paymentFilter === 'debt') {
+      statusFilteredOrders = dateFilteredOrders.filter(
+        (o) => (o.debtAmount && o.debtAmount > 0) || o.paymentStatus === 'unpaid' || o.paymentStatus === 'partial'
+      );
+    }
+
+    /** 4. Filter by Selected Smart Customer Group or Search Keyword */
+    let finalOrders = statusFilteredOrders;
+
+    if (ztteam_selectedCustomerKey) {
+      const selectedGroup = smartCustomerGroups.find((g) => g.key === ztteam_selectedCustomerKey);
+      if (selectedGroup) {
+        finalOrders = statusFilteredOrders.filter((order) => {
+          const { nameKey, phoneKey } = ztteam_normalizeCustomerKey(order.customerName, order.customerPhone);
+          if (selectedGroup.phoneKey && phoneKey && selectedGroup.phoneKey === phoneKey) return true;
+          if (selectedGroup.nameKey && nameKey === selectedGroup.nameKey) return true;
+          return false;
+        });
+      }
+    } else if (ztteam_searchKeyword && ztteam_searchKeyword.trim()) {
+      const { nameKey: searchNameKey, phoneKey: searchPhoneKey } = ztteam_normalizeCustomerKey(
+        ztteam_searchKeyword,
+        ztteam_searchKeyword
+      );
+      const rawSearch = ztteam_searchKeyword.trim().toLowerCase();
+
+      finalOrders = statusFilteredOrders.filter((order) => {
+        const orderName = (order.customerName || '').toLowerCase();
+        const orderPhone = (order.customerPhone || '').toLowerCase();
+        const { nameKey: orderNameKey, phoneKey: orderPhoneKey } = ztteam_normalizeCustomerKey(
+          order.customerName,
+          order.customerPhone
+        );
+
+        /** Match phone */
+        if (searchPhoneKey && orderPhoneKey.includes(searchPhoneKey)) return true;
+        if (orderPhone.includes(rawSearch)) return true;
+
+        /** Match smart normalized name */
+        if (searchNameKey && orderNameKey.includes(searchNameKey)) return true;
+        if (orderName.includes(rawSearch)) return true;
+
+        /** Match Order ID */
+        if (`#${order.id}`.includes(rawSearch) || String(order.id) === rawSearch) return true;
+
+        return false;
+      });
+    }
+
+    /** Calculate Debt Metrics for the currently displayed filtered orders */
+    const totalGrossRevenue = finalOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+    const totalDebtAmount = finalOrders.reduce((sum, order) => sum + (order.debtAmount || 0), 0);
+    const totalCollectedRevenue = finalOrders.reduce((sum, order) => {
       if (order.paidAmount !== undefined) return sum + order.paidAmount;
       return sum + (order.totalAmount || 0); /** Fallback for legacy orders without paidAmount field */
     }, 0);
 
-    const totalUnpaidOrdersCount = dateFilteredOrders.filter(
+    const totalUnpaidOrdersCount = finalOrders.filter(
       (o) => (o.debtAmount && o.debtAmount > 0) || o.paymentStatus === 'unpaid' || o.paymentStatus === 'partial'
     ).length;
-
-    /** 2. Filter by Payment Status Sub-tab */
-    let finalOrders = dateFilteredOrders;
-    if (ztteam_paymentFilter === 'paid') {
-      finalOrders = dateFilteredOrders.filter(
-        (o) => (!o.paymentStatus || o.paymentStatus === 'paid') && (!o.debtAmount || o.debtAmount === 0)
-      );
-    } else if (ztteam_paymentFilter === 'debt') {
-      finalOrders = dateFilteredOrders.filter(
-        (o) => (o.debtAmount && o.debtAmount > 0) || o.paymentStatus === 'unpaid' || o.paymentStatus === 'partial'
-      );
-    }
 
     const totalItems = finalOrders.reduce((sum, order) => {
       const orderItems = order.totalItems || order.items?.reduce((s, item) => s + (item.quantity || 1), 0) || 1;
@@ -78,6 +199,7 @@ export function ZTTeamOrdersPage() {
 
     return {
       orders: finalOrders,
+      smartCustomerGroups,
       totalGrossRevenue,
       totalCollectedRevenue,
       totalDebtAmount,
@@ -85,7 +207,7 @@ export function ZTTeamOrdersPage() {
       totalItems,
       orderCount: finalOrders.length
     };
-  }, [ztteam_filterMode, ztteam_selectedDate, ztteam_paymentFilter]);
+  }, [ztteam_filterMode, ztteam_selectedDate, ztteam_paymentFilter, ztteam_searchKeyword, ztteam_selectedCustomerKey]);
 
   /** Delete Order with Custom Confirm Modal */
   const ztteam_handleDeleteOrder = (orderId) => {
@@ -266,6 +388,145 @@ export function ZTTeamOrdersPage() {
               </span>
             )}
           </button>
+        </div>
+
+        {/** Smart Customer Search Bar & Suggestion Chips */}
+        <div className="bg-surface-container-lowest rounded-xl p-sm sm:p-md shadow-xs border border-surface-container-high space-y-sm">
+          {/** Search Input Bar */}
+          <div className="relative flex items-center">
+            <span className="material-symbols-outlined text-[20px] text-primary absolute left-3 pointer-events-none">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Tìm theo tên khách, SĐT (ví dụ: Anh Nam, 090...)"
+              value={ztteam_searchKeyword}
+              onChange={(e) => {
+                setZtteam_searchKeyword(e.target.value);
+                if (ztteam_selectedCustomerKey) setZtteam_selectedCustomerKey(null);
+              }}
+              className="w-full bg-surface-container border border-surface-container-high rounded-xl pl-10 pr-9 py-2.5 text-[13px] text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-body-md"
+            />
+            {ztteam_searchKeyword && (
+              <button
+                type="button"
+                onClick={() => setZtteam_searchKeyword('')}
+                className="absolute right-3 text-on-surface-variant hover:text-on-surface cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">cancel</span>
+              </button>
+            )}
+          </div>
+
+          {/** Smart Suggestion Chips (Gợi ý khách hàng thông minh) */}
+          {ztteam_ordersData?.smartCustomerGroups && ztteam_ordersData.smartCustomerGroups.length > 0 && (
+            <div className="space-y-xs pt-0.5">
+              <div className="flex items-center justify-between text-[11px] text-on-surface-variant font-semibold px-0.5">
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px] text-primary">auto_awesome</span>
+                  <span>Gợi ý khách hàng ({ztteam_ordersData.smartCustomerGroups.length}):</span>
+                </span>
+                {(ztteam_selectedCustomerKey || ztteam_searchKeyword) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setZtteam_selectedCustomerKey(null);
+                      setZtteam_searchKeyword('');
+                    }}
+                    className="text-primary hover:underline cursor-pointer text-[11px] font-bold"
+                  >
+                    Xem tất cả
+                  </button>
+                )}
+              </div>
+
+              {/** Horizontal Scrollable Chips */}
+              <div className="flex items-center gap-xs overflow-x-auto pb-1 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setZtteam_selectedCustomerKey(null);
+                    setZtteam_searchKeyword('');
+                  }}
+                  className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold cursor-pointer transition-all ${
+                    !ztteam_selectedCustomerKey && !ztteam_searchKeyword
+                      ? 'bg-primary text-on-primary shadow-xs'
+                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                  }`}
+                >
+                  Tất cả khách
+                </button>
+
+                {ztteam_ordersData.smartCustomerGroups.map((group) => {
+                  const isSelected = ztteam_selectedCustomerKey === group.key;
+                  const hasDebt = group.totalDebt > 0;
+
+                  return (
+                    <button
+                      key={group.key}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setZtteam_selectedCustomerKey(null);
+                        } else {
+                          setZtteam_selectedCustomerKey(group.key);
+                          setZtteam_searchKeyword('');
+                        }
+                      }}
+                      className={`shrink-0 px-2.5 py-1 rounded-full text-[12px] font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-primary text-on-primary shadow-xs ring-2 ring-primary/40'
+                          : hasDebt
+                          ? 'bg-error-container/30 text-error border border-error/30 hover:bg-error-container/50'
+                          : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {hasDebt ? 'person_alert' : 'person'}
+                      </span>
+                      <span>{group.displayName}</span>
+                      {group.phone && (
+                        <span className="text-[10px] opacity-75">({group.phone})</span>
+                      )}
+                      {hasDebt && (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isSelected ? 'bg-white text-error' : 'bg-error text-white'
+                          }`}
+                        >
+                          Nợ: {new Intl.NumberFormat('vi-VN').format(group.totalDebt)}đ
+                        </span>
+                      )}
+                      {isSelected && (
+                        <span className="material-symbols-outlined text-[14px] ml-0.5">close</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/** Active Filter Feedback Banner */}
+          {ztteam_selectedCustomerKey && (
+            <div className="bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-[12px]">
+              <span className="text-primary font-semibold flex items-center gap-1">
+                <span className="material-symbols-outlined text-[15px]">filter_alt</span>
+                <span>
+                  Đang lọc theo: <strong>
+                    {ztteam_ordersData?.smartCustomerGroups?.find((g) => g.key === ztteam_selectedCustomerKey)?.displayName}
+                  </strong> (Bao gồm các tên viết tắt & SĐT trùng khớp)
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setZtteam_selectedCustomerKey(null)}
+                className="text-error font-bold hover:underline cursor-pointer ml-2 text-[11px]"
+              >
+                Xóa lọc
+              </button>
+            </div>
+          )}
         </div>
 
         {/** Summary Bento Cards (Doanh thu thực thu, Tổng nợ chưa thu & Số đơn) */}
