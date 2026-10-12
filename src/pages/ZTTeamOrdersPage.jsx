@@ -5,7 +5,7 @@ import { ztteam_db, ztteam_getLocalDateStr } from '../db/ztteam_database';
 import { ZTTeamLayout } from '../components/layout/ZTTeamLayout';
 import { ztteam_useNotification } from '../stores/ztteam_notificationContext';
 
-/** Normalize customer name & phone into a unified key for fuzzy grouping (A Nam = Anh nam = anh nam) */
+/** Normalize customer name & phone into a unified key for fuzzy grouping (A Trung = Anh Trung = trung) */
 export function ztteam_normalizeCustomerKey(name = '', phone = '') {
   const cleanPhone = (phone || '').replace(/\D/g, '');
   
@@ -17,18 +17,22 @@ export function ztteam_normalizeCustomerKey(name = '', phone = '') {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/đ/g, 'd');
 
-  /** Remove dots, commas, dashes */
-  cleanName = cleanName.replace(/[.,\-_/]/g, ' ').replace(/\s+/g, ' ').trim();
+  /** Remove dots, commas, dashes, symbols */
+  cleanName = cleanName.replace(/[.,\-_/\\#@!$%^&*()+=[\]{}|;:'"<>?~`]/g, ' ').replace(/\s+/g, ' ').trim();
 
-  /** Normalize common honorific abbreviations: a / a. -> anh, c / c. -> chi, e / e. -> em, b / b. -> bac */
-  cleanName = cleanName
-    .replace(/^a\s+/, 'anh ')
-    .replace(/^c\s+/, 'chi ')
-    .replace(/^e\s+/, 'em ')
-    .replace(/^b\s+/, 'bac ');
+  /** Extract core name by stripping common Vietnamese honorific titles & prefixes (anh, a, chi, c, em, e, bac, b, co, chu...) */
+  let coreName = cleanName
+    .replace(/^(anh|a|chi|c|em|e|bac|b|co|chu|cau|di|ban|ong|ba)\s+/, '')
+    .trim();
+
+  /** Fallback if core name is empty */
+  if (!coreName) {
+    coreName = cleanName;
+  }
 
   return {
     nameKey: cleanName,
+    coreNameKey: coreName,
     phoneKey: cleanPhone
   };
 }
@@ -79,7 +83,7 @@ export function ZTTeamOrdersPage() {
       dateFilteredOrders = allOrders.filter((o) => o.createdAt && ztteam_getLocalDateStr(o.createdAt) === ztteam_selectedDate);
     }
 
-    /** 2. Group customers smartly by normalized name or phone (A Nam = Anh nam) */
+    /** 2. Group customers smartly by Core Name or phone (A Trung = Anh Trung = trung) */
     const customerGroupMap = new Map();
 
     dateFilteredOrders.forEach((order) => {
@@ -90,13 +94,15 @@ export function ZTTeamOrdersPage() {
         return;
       }
 
-      const { nameKey, phoneKey } = ztteam_normalizeCustomerKey(orderName, orderPhone);
-      const groupKey = phoneKey ? `p_${phoneKey}` : (nameKey || `order_${order.id}`);
+      const { nameKey, coreNameKey, phoneKey } = ztteam_normalizeCustomerKey(orderName, orderPhone);
+      /** Group by phone if available, otherwise by core name so A Trung & trung merge together */
+      const groupKey = phoneKey ? `p_${phoneKey}` : (coreNameKey ? `c_${coreNameKey}` : `order_${order.id}`);
 
       if (!customerGroupMap.has(groupKey)) {
         customerGroupMap.set(groupKey, {
           key: groupKey,
           nameKey,
+          coreNameKey,
           phoneKey,
           displayName: orderName || (orderPhone ? `Khách ${orderPhone}` : `Đơn #${order.id}`),
           phone: orderPhone,
@@ -109,9 +115,15 @@ export function ZTTeamOrdersPage() {
         group.orderCount += 1;
         group.totalDebt += (order.debtAmount || 0);
         group.totalPaid += (order.paidAmount !== undefined ? order.paidAmount : (order.totalAmount || 0));
+        
         if (orderName) {
-          /** Keep preferred display name (capitalized or longer) */
-          if (orderName.length > group.displayName.length || (/^[A-Z]/.test(orderName) && !/^[A-Z]/.test(group.displayName))) {
+          /** Prefer display name with honorific title or capitalization (e.g. "A Trung" over "trung") */
+          const currentIsBare = !/^(anh|a|chi|c|em|e|bac|b|co|chu|cau|di|ban)\s+/i.test(group.displayName);
+          const newHasPrefix = /^(anh|a|chi|c|em|e|bac|b|co|chu|cau|di|ban)\s+/i.test(orderName);
+
+          if (newHasPrefix && currentIsBare) {
+            group.displayName = orderName;
+          } else if (orderName.length > group.displayName.length || (/^[A-Z]/.test(orderName) && !/^[A-Z]/.test(group.displayName))) {
             group.displayName = orderName;
           }
         }
@@ -144,14 +156,15 @@ export function ZTTeamOrdersPage() {
       const selectedGroup = smartCustomerGroups.find((g) => g.key === ztteam_selectedCustomerKey);
       if (selectedGroup) {
         finalOrders = statusFilteredOrders.filter((order) => {
-          const { nameKey, phoneKey } = ztteam_normalizeCustomerKey(order.customerName, order.customerPhone);
+          const { coreNameKey, nameKey, phoneKey } = ztteam_normalizeCustomerKey(order.customerName, order.customerPhone);
           if (selectedGroup.phoneKey && phoneKey && selectedGroup.phoneKey === phoneKey) return true;
+          if (selectedGroup.coreNameKey && coreNameKey === selectedGroup.coreNameKey) return true;
           if (selectedGroup.nameKey && nameKey === selectedGroup.nameKey) return true;
           return false;
         });
       }
     } else if (ztteam_searchKeyword && ztteam_searchKeyword.trim()) {
-      const { nameKey: searchNameKey, phoneKey: searchPhoneKey } = ztteam_normalizeCustomerKey(
+      const { coreNameKey: searchCoreKey, nameKey: searchNameKey, phoneKey: searchPhoneKey } = ztteam_normalizeCustomerKey(
         ztteam_searchKeyword,
         ztteam_searchKeyword
       );
@@ -160,7 +173,7 @@ export function ZTTeamOrdersPage() {
       finalOrders = statusFilteredOrders.filter((order) => {
         const orderName = (order.customerName || '').toLowerCase();
         const orderPhone = (order.customerPhone || '').toLowerCase();
-        const { nameKey: orderNameKey, phoneKey: orderPhoneKey } = ztteam_normalizeCustomerKey(
+        const { coreNameKey: orderCoreKey, nameKey: orderNameKey, phoneKey: orderPhoneKey } = ztteam_normalizeCustomerKey(
           order.customerName,
           order.customerPhone
         );
@@ -169,8 +182,11 @@ export function ZTTeamOrdersPage() {
         if (searchPhoneKey && orderPhoneKey.includes(searchPhoneKey)) return true;
         if (orderPhone.includes(rawSearch)) return true;
 
+        /** Match core name (e.g. search "trung" matches "A Trung", "Anh Trung", "trung") */
+        if (searchCoreKey && (orderCoreKey === searchCoreKey || orderCoreKey.includes(searchCoreKey))) return true;
+
         /** Match smart normalized name */
-        if (searchNameKey && orderNameKey.includes(searchNameKey)) return true;
+        if (searchNameKey && (orderNameKey.includes(searchNameKey) || searchNameKey.includes(orderNameKey))) return true;
         if (orderName.includes(rawSearch)) return true;
 
         /** Match Order ID */
